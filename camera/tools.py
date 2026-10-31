@@ -1,4 +1,4 @@
-import os, subprocess, shutil
+winget install Gyan.FFmpegimport os, subprocess, shutil
 
 CAPACITY_MB = 100
 

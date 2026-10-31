@@ -11,6 +11,8 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import datetime
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -138,11 +140,23 @@ def create_app(cam_id: str, storage_dir: str, capacity_mb: float = 100.0) -> Fas
 
     @app.get("/recent_detections")
     def recent_detections(request: Request, since_seconds: float = 60.0) -> List[Dict[str, Any]]:
-        """Returns detections logged within the trailing time window."""
+        """Returns detections logged within the trailing time window, formatted to the contract."""
         logger.info(f"GET /recent_detections called for past {since_seconds}s")
         now = time.time()
         cutoff = now - since_seconds
-        return [d for d in app.state.detections if d["timestamp"] >= cutoff]
+        
+        formatted_results = []
+        for d in app.state.detections:
+            if d["timestamp"] >= cutoff:
+                # Convert the raw Unix timestamp into the required "HH:MM:SS" format
+                formatted_time = datetime.datetime.fromtimestamp(d["timestamp"]).strftime("%H:%M:%S")
+                
+                formatted_results.append({
+                    "time": formatted_time,
+                    "person_seen": True  # If it made it into this log, YOLO detected a person
+                })
+                
+        return formatted_results
 
     @app.get("/retrieve/{owner}/{clip_id}")
     def retrieve_clip(owner: str, clip_id: str, request: Request) -> FileResponse:
@@ -211,18 +225,4 @@ if __name__ == "__main__":
     
     uvicorn.run(app, host="0.0.0.0", port=args.port)
     
-    import datetime
-
-@app.get("/recent_detections")
-def get_recent_detections():
-    """
-    Neighbor Question endpoint.
-    Matches the agreed shape: [{"time": "...", "person_seen": bool}]
-    """
-    current_time = datetime.datetime.now().strftime("%H:%M:%S")
-    return [
-        {
-            "time": current_time,
-            "person_seen": True
-        }
-    ]
+    
