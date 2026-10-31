@@ -28,7 +28,7 @@ def process_camera_feed(video_file_path, storage_dir, camera_context):
         print(f"[VISION] Person detected! (YOLO Conf: {vision_data['yolo_conf']})")
         print("[AGENT] Extracting keyframes and querying Gemini...")
         
-        b64_frames = vision.get_keyframes_b64(clip_path)
+        b64_frames = vision.get_keyframes_b64(clip_path,n=1)
         threat_assessment = score_clip(b64_frames, camera_context)
         
         print(f"[AGENT] Gemini Score: {threat_assessment['score']}")
@@ -101,8 +101,8 @@ def process_camera_feed(video_file_path, storage_dir, camera_context):
             else:
                 print("[DECISION] Keeping clip on local disk.")
 
-        print("\nWaiting 5 seconds to respect API rate limits...")
-        time.sleep(5)
+        print("\nWaiting 1 second to respect API rate limits...")
+        time.sleep(1)
 
 if __name__ == "__main__":
     sample_video = "sample_videos/cam1_intruder.mp4"
