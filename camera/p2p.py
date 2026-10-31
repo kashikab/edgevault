@@ -123,7 +123,7 @@ def create_app(cam_id: str, storage_dir: str, capacity_mb: float = 100.0) -> Fas
         
         file_path = os.path.join(storage_dir, f"stored_for_{payload.owner}", f"{payload.clip_id}.bin")
         if not os.path.exists(file_path):
-            return JSONResponse(status_code=404, content={"error": "not_found"})
+            raise HTTPException(status_code=404, detail="not_found")
             
         with open(file_path, "rb") as f:
             file_bytes = f.read()
