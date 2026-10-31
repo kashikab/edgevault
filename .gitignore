@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# EdgeVault local storage and test artifacts
+storage/
+*.db
+*.bin
+camera_key.bin
+cam*_key.bin
