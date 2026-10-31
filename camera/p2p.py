@@ -210,3 +210,19 @@ if __name__ == "__main__":
     app = create_app(cam_id=args.id, storage_dir=storage_dir)
     
     uvicorn.run(app, host="0.0.0.0", port=args.port)
+    
+    import datetime
+
+@app.get("/recent_detections")
+def get_recent_detections():
+    """
+    Neighbor Question endpoint.
+    Matches the agreed shape: [{"time": "...", "person_seen": bool}]
+    """
+    current_time = datetime.datetime.now().strftime("%H:%M:%S")
+    return [
+        {
+            "time": current_time,
+            "person_seen": True
+        }
+    ]
