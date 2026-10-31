@@ -65,3 +65,11 @@ if __name__ == "__main__":
     clips = split_video("videos/empty_hallway.mp4", "storage/cam1")
     for c in clips:
         print(detect_person(c))
+
+import time
+
+def stream_clips(clips, delay=10):
+    """Yield one clip result every `delay` seconds (use 2-3 for fast testing)."""
+    for c in clips:
+        yield detect_person(c)
+        time.sleep(delay)
