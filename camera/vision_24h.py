@@ -48,7 +48,7 @@ def detect_person(clip_path, conf=0.4):
     total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     max_conf, max_count, checked = 0.0, 0, 0
 
-    for i in range(0, total, fps):          # step = 1 second
+    for i in range(0, total, fps*2):          # step = 2 seconds
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ok, frame = cap.read()
         if not ok:
