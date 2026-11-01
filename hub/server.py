@@ -10,22 +10,33 @@ Run:  python server.py          (listens on http://localhost:9000)
 import asyncio
 import random
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 CAPACITY_MB = 100
 CAMS = ["cam1", "cam2", "cam3", "cam4"]
 CAM_NAMES = {"cam1": "Front Door", "cam2": "Hallway", "cam3": "Server Room", "cam4": "Parking"}
+VIDEO_DIR = Path(__file__).resolve().parent.parent / "videos"
+CAM_VIDEOS = {
+    "cam1": "hallway.mp4",
+    "cam2": "normal.mp4",
+    "cam3": "suspicious.mp4",
+    "cam4": "seemingly_suspicious.mp4",
+}
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.mount("/videos", StaticFiles(directory=VIDEO_DIR), name="videos")
 
 # ---------- shared state ----------
 state = {
     "cams": {
         c: {"name": CAM_NAMES[c], "online": True, "used_mb": random.randint(15, 40),
-            "capacity_mb": CAPACITY_MB, "last_score": 0.1, "status": "calm"}
+            "capacity_mb": CAPACITY_MB, "last_score": 0.1, "status": "calm",
+            "video_url": f"http://localhost:9000/videos/{CAM_VIDEOS[c]}"}
         for c in CAMS
     },
     "ledger": {c: 100.0 for c in CAMS},       # fake credits
@@ -64,22 +75,12 @@ def next_clip():
 
 
 # ---------- scripted scenarios ----------
-async def calm_tick():
-    cam = random.choice([c for c in CAMS if state["cams"][c]["online"]])
-    clip = next_clip()
-    score = round(random.uniform(0.02, 0.2), 2)
-    state["cams"][cam]["last_score"] = score
-    state["cams"][cam]["status"] = "calm"
-    await emit(cam, "perceive", f"{clip}: empty hallway, no person", score)
-    await emit(cam, "evict", f"{clip}: low score, deleted (-2 MB)", score)
-
-
 async def intruder(cam="cam1"):
     c = state["cams"][cam]
     clip = next_clip()
     c["status"] = "alert"
     c["last_score"] = 0.91
-    await emit(cam, "perceive", f"{clip}: YOLO sees 1 person at restricted door", 0.91)
+    await emit(cam, "perceive", f"{clip}: simulated threat trigger on hallway footage", 0.91)
     await asyncio.sleep(0.8)
     await emit(cam, "reason", f"Gemini: threat 0.91. Disk {c['used_mb']}% full. Decision: keep clip", 0.91)
     await asyncio.sleep(0.8)
@@ -185,7 +186,7 @@ async def camera_state(body: dict):
     if cam not in state["cams"]:
         return {"ok": False, "error": f"unknown camera {cam}"}
     c = state["cams"][cam]
-    for k in ("used_mb", "online", "last_score", "status", "thumb_url"):
+    for k in ("used_mb", "online", "last_score", "status", "thumb_url", "video_url"):
         if k in body:
             c[k] = body[k]
     if "credits" in body:
@@ -207,17 +208,6 @@ async def ws_endpoint(ws: WebSocket):
             await ws.receive_text()   # keep the connection open
     except WebSocketDisconnect:
         clients.discard(ws)
-
-
-# ---------- background: calm activity ----------
-@app.on_event("startup")
-async def startup():
-    async def loop():
-        while True:
-            await asyncio.sleep(4)
-            if clients:
-                await calm_tick()
-    asyncio.create_task(loop())
 
 
 if __name__ == "__main__":

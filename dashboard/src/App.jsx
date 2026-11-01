@@ -8,6 +8,12 @@ const MUTE_AFTER_DISMISS_MS = 8000;  // no repeat pop-up for the same camera rig
 const NOTABLE_SCORE = 0.4;           // timeline ignores perceive/reason events scored below this
 const RANGES = [3, 10, 30];          // timeline ranges (minutes) offered on the Timeline tab
 const ASSUMED_MB_PER_DAY = 10;       // PROJECTED retention assumes each camera keeps this much important footage per day
+const VIDEO_ANNOTATIONS = [
+  { type: "perceive", msg: "Demo clip: hallway is empty; no person visible yet.", score: 0.05 },
+  { type: "perceive", msg: "Demo clip: one person enters the hallway and walks down the corridor.", score: 0.45 },
+  { type: "reason", msg: "Demo analysis: person continues walking; no overt suspicious action is visible. Classified as routine movement.", score: 0.18 },
+];
+const VIDEO_STAGE_TIMES = { cam4: [1.5, 5] };
 
 const TYPE_LABEL = {
   perceive: "PERCEIVE",
@@ -325,8 +331,9 @@ function MetricsStrip({ state }) {
 }
 
 /* ---------- camera card: monitor on top, telemetry below, actions in a menu ---------- */
-function CameraCard({ id, cam, credits, hosted, peerFreeMb, onToggle, onIntruder, onDiskFull }) {
+function CameraCard({ id, cam, credits, hosted, peerFreeMb, onToggle, onIntruder, onDiskFull, reportVideoEvent }) {
   const feedRef = useRef(null);
+  const videoStageRef = useRef(-1);
   const [menu, setMenu] = useState(null);
 
   const pct = Math.round((cam.used_mb / cam.capacity_mb) * 100);
@@ -359,6 +366,15 @@ function CameraCard({ id, cam, credits, hosted, peerFreeMb, onToggle, onIntruder
     });
   };
   const run = (fn) => () => { setMenu(null); fn(); };
+  const reportVideoStage = (event) => {
+    const [personAt, reasoningAt] = VIDEO_STAGE_TIMES[id] || [3, 6];
+    const stage = event.currentTarget.currentTime < personAt ? 0 : event.currentTarget.currentTime < reasoningAt ? 1 : 2;
+    if (stage === videoStageRef.current) return;
+    videoStageRef.current = stage;
+    reportVideoEvent({ cam: id, ...VIDEO_ANNOTATIONS[stage] }).catch((error) => {
+      console.error("Could not send video annotation to hub:", error);
+    });
+  };
 
   return (
     <div className={`card status-${status}`}>
@@ -367,7 +383,9 @@ function CameraCard({ id, cam, credits, hosted, peerFreeMb, onToggle, onIntruder
         ref={feedRef}
         onContextMenu={(e) => { e.preventDefault(); openMenu(e.clientX, e.clientY); }}
       >
-        {cam.online && cam.thumb_url ? (
+        {cam.online && cam.video_url ? (
+          <video src={cam.video_url} autoPlay muted loop playsInline onTimeUpdate={reportVideoStage} />
+        ) : cam.online && cam.thumb_url ? (
           <img src={cam.thumb_url} alt={`${fmtCam(id)} feed`} />
         ) : (
           <div className="feed-empty">
@@ -727,7 +745,7 @@ export default function App() {
     setCritical(null);
   }, []);
 
-  const { state, log, connected, trigger } = useHub(handleEvent);
+  const { state, log, connected, trigger, reportVideoEvent } = useHub(handleEvent);
   const camIds = state ? Object.keys(state.cams) : [];
 
   const online = state ? Object.values(state.cams).filter((c) => c.online).length : 0;
@@ -799,6 +817,7 @@ export default function App() {
                       onToggle={() => trigger(`toggle/${id}`)}
                       onIntruder={() => trigger(`intruder?cam=${id}`)}
                       onDiskFull={() => trigger(`disk_full?cam=${id}`)}
+                      reportVideoEvent={reportVideoEvent}
                     />
                   );
                 })}

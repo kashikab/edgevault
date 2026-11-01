@@ -22,6 +22,11 @@ Open http://localhost:5173
 - Toggle Cam 3 offline: then trigger intruder again to show re-routing to Cam 4.
 - Reset: restore everything.
 
+The bundled hallway videos generate clearly labeled demo annotations in the agent
+reasoning log as playback reaches the empty-scene, person-entry, and walking
+segments. These are time-based annotations, not live computer-vision inference.
+The simulation buttons remain separate from the video annotations.
+
 ## Contract (share with the team)
 Hub -> dashboard over WebSocket ws://localhost:9000/ws, messages `{kind, data}`:
 - `state`: {cams: {cam1: {name, online, used_mb, capacity_mb, last_score, status}}, ledger: {cam1: 100.0}, stored_for_others: {cam1: 0}}

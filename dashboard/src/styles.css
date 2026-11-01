@@ -169,7 +169,7 @@ body { margin: 0; min-height: 100vh; color: var(--text); background-color: var(-
   background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 3px);
   display: flex; align-items: center; justify-content: center;
 }
-.feed img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feed img, .feed video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .feed-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--faint); font-family: var(--mono); font-size: 11px; letter-spacing: .14em; }
 .feed-top, .feed-bottom { position: absolute; left: 0; right: 0; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: none; }
 .feed-top { top: 0; background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent); }

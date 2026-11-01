@@ -57,6 +57,14 @@ export function useHub(onEvent) {
   }, []);
 
   const trigger = (path) => fetch(`http://${HUB}/trigger/${path}`, { method: "POST" });
+  const reportVideoEvent = async (event) => {
+    const response = await fetch(`http://${HUB}/event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+    if (!response.ok) throw new Error(`Hub rejected video event (${response.status})`);
+  };
 
-  return { state, log, connected, trigger };
+  return { state, log, connected, trigger, reportVideoEvent };
 }
